@@ -12,6 +12,7 @@ import (
 	"steam-lancache/internal/api"
 	"steam-lancache/internal/config"
 	"steam-lancache/internal/dns"
+	"steam-lancache/internal/helpers"
 	"steam-lancache/internal/proxy"
 	"steam-lancache/internal/stats"
 	"steam-lancache/internal/tcp"
@@ -27,6 +28,13 @@ func main() {
 	multiwriter := io.MultiWriter(os.Stdout, logfile)
 	log.SetOutput(multiwriter)
 	log.SetFlags(0)
+
+	// display system info
+	fmt.Println("[+] Checking...")
+	_, _, _, _, hasInternet, _ := helpers.ShowSystemInfo(true)
+	if !hasInternet {
+		log.Fatal("[!] No Internet Connection")
+	}
 
 	// get token from user
 	reader := bufio.NewReader(os.Stdin)
