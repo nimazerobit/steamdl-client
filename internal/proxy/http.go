@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -22,9 +21,9 @@ func Start(state *config.AppState) {
 	// force connection to cache server ip to prevent dns loop
 	proxy.Transport = &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			addr = fmt.Sprintf("%s:%s", state.CacheServerIP, config.HTTPPort)
-			return net.Dial("tcp", addr)
+		DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
+			target := net.JoinHostPort(state.CacheServerIP, config.HTTPPort)
+			return net.Dial("tcp", target)
 		},
 		MaxIdleConns:        100,
 		IdleConnTimeout:     90 * time.Second,

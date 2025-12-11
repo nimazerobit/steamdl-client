@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -54,7 +53,6 @@ func ShowSystemInfo(is_print bool) (
 	localIP = getLocalIP()
 	hasInternet, ping = checkInternet()
 	if is_print {
-		fmt.Println("-----------------------------------------")
 		log.Println("[*] Operating System:", osName)
 		log.Println("[*] Architecture:", arch)
 		log.Println("[*] Number of CPUs:", cpuCount)
@@ -64,7 +62,6 @@ func ShowSystemInfo(is_print bool) (
 		} else {
 			log.Println("[*] Internet: no")
 		}
-		fmt.Println("-----------------------------------------")
 	}
 	return
 }

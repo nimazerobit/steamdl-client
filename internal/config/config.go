@@ -27,6 +27,7 @@ type DomainConfig struct {
 	Xbox        []string `json:"xbox"`
 	Riot        []string `json:"riot"`
 	Epic        []string `json:"epic"`
+	Order       []string `json:"order"`
 }
 
 var Domains DomainConfig

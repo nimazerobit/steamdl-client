@@ -45,6 +45,17 @@ func Add(category string, n int64) {
 	traffic[category].Bytes += n
 }
 
+func Snapshot() map[string]int64 {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	out := make(map[string]int64)
+	for k, v := range traffic {
+		out[k] = v.Bytes
+	}
+	return out
+}
+
 func StartSaver() {
 	ticker := time.NewTicker(config.StatsUpdateFreq)
 	for range ticker.C {

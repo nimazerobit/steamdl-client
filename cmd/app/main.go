@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync"
 
+	"steam-lancache/cmd/app/tui"
 	"steam-lancache/internal/api"
 	"steam-lancache/internal/config"
 	"steam-lancache/internal/dns"
@@ -16,6 +16,8 @@ import (
 	"steam-lancache/internal/proxy"
 	"steam-lancache/internal/stats"
 	"steam-lancache/internal/tcp"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
@@ -25,7 +27,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer logfile.Close()
-	multiwriter := io.MultiWriter(os.Stdout, logfile)
+	multiwriter := io.MultiWriter(logfile)
 	log.SetOutput(multiwriter)
 	log.SetFlags(0)
 
@@ -49,18 +51,10 @@ func main() {
 
 	// get token info
 	log.Println("[+] Receiving token information...")
-	ip, details, err := api.GetTokenInfo(token)
+	details, err := api.GetTokenInfo(token)
 	if err != nil {
 		log.Fatalf("[!] Receiving token information failed -> %v", err)
 	}
-
-	// show details
-	fmt.Println("------------------------------------------------")
-	fmt.Printf("[*] Subscription Active\n")
-	fmt.Printf("[*] User IP:     %s\n", details.UserIP)
-	fmt.Printf("[*] Expires:     %s\n", details.End)
-	fmt.Printf("[*] Upstream IP: %s\n", ip)
-	fmt.Println("------------------------------------------------")
 
 	// fetch and select DNS server
 	log.Println("\nFetching DNS servers...")
@@ -75,7 +69,7 @@ func main() {
 
 	appState := &config.AppState{
 		UserToken:     token,
-		CacheServerIP: ip,
+		CacheServerIP: details.UpstreamIP,
 		DNSIP:         selectedDNS.IP,
 	}
 
@@ -83,23 +77,12 @@ func main() {
 	stats.Load()
 
 	// start services
-	var wg sync.WaitGroup
-	wg.Add(3)
+	go func() { stats.StartSaver() }()
+	go func() { dns.Start(appState) }()
+	go func() { tcp.Start(appState.CacheServerIP) }()
+	go func() { proxy.Start(appState) }()
 
-	go func() {
-		stats.StartSaver()
-		wg.Done()
-	}()
-
-	go func() {
-		dns.Start(appState)
-		wg.Done()
-	}()
-
-	go func() {
-		tcp.Start(appState.CacheServerIP)
-		wg.Done()
-	}()
-
-	proxy.Start(appState)
+	if err := tea.NewProgram(tui.UIModel(details)).Start(); err != nil {
+		log.Fatal(err)
+	}
 }
