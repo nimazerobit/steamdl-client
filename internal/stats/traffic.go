@@ -1,44 +1,58 @@
 package stats
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"os"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"steam-lancache/internal/config"
 )
 
+type CategoryStats struct {
+	Bytes int64 `json:"bytes"`
+}
+
 var (
-	bytesReceived int64
-	mutex         sync.Mutex
+	mutex   sync.Mutex
+	traffic = map[string]*CategoryStats{
+		"steam":       {0},
+		"playstation": {0},
+		"xbox":        {0},
+		"riot":        {0},
+		"epic":        {0},
+		"global":      {0},
+	}
 )
 
 func Load() {
 	data, err := os.ReadFile(config.StatsFile)
-	if err == nil {
-		val, _ := strconv.ParseInt(strings.TrimSpace(string(data)), 10, 64)
-		bytesReceived = val
+	if err != nil {
+		return
 	}
+
+	_ = json.Unmarshal(data, &traffic)
 }
 
-func AddBytes(n int64) {
+func Add(category string, n int64) {
 	mutex.Lock()
 	defer mutex.Unlock()
-	bytesReceived += n
+
+	if _, ok := traffic[category]; !ok {
+		traffic[category] = &CategoryStats{}
+	}
+	traffic[category].Bytes += n
 }
 
 func StartSaver() {
 	ticker := time.NewTicker(config.StatsUpdateFreq)
 	for range ticker.C {
 		mutex.Lock()
-		currentBytes := bytesReceived
+		data, _ := json.MarshalIndent(traffic, "", "  ")
 		mutex.Unlock()
 
-		err := os.WriteFile(config.StatsFile, []byte(fmt.Sprintf("%d", currentBytes)), 0644)
+		err := os.WriteFile(config.StatsFile, data, 0644)
 		if err != nil {
 			log.Printf("[Stats] Error saving: %v", err)
 		}

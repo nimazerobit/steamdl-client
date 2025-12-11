@@ -35,6 +35,7 @@ func main() {
 	if !hasInternet {
 		log.Fatal("[!] No Internet Connection")
 	}
+	config.LoadDomains()
 
 	// get token from user
 	reader := bufio.NewReader(os.Stdin)

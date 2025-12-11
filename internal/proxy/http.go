@@ -46,8 +46,10 @@ func Start(state *config.AppState) {
 	proxy.ModifyResponse = func(resp *http.Response) error {
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 			if resp.Request.Header.Get("User-Agent") != "GamingServices" {
+				host := resp.Request.Header.Get("Real-Host")
+				category := stats.DetectCategory(host)
 				if resp.ContentLength > 0 {
-					stats.AddBytes(resp.ContentLength)
+					stats.Add(category, resp.ContentLength)
 				}
 			}
 		}

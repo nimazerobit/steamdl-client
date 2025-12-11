@@ -21,24 +21,35 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	case dns.OpcodeQuery:
 		for _, q := range m.Question {
 			shouldSpoof := false
-			for _, d := range config.AllDomains {
-				if !strings.HasSuffix(d, ".") {
-					d = d + "."
+			for _, list := range [][]string{
+				config.Domains.Global,
+				config.Domains.Steam,
+				config.Domains.PlayStation,
+				config.Domains.Xbox,
+				config.Domains.Riot,
+				config.Domains.Epic,
+			} {
+				for _, d := range list {
+					domain := d
+					if !strings.HasSuffix(domain, ".") {
+						domain += "."
+					}
+					if strings.HasPrefix(domain, "*.") {
+						if strings.HasSuffix(q.Name, domain[2:]) {
+							shouldSpoof = true
+							break
+						}
+					} else {
+						if strings.HasSuffix(q.Name, domain) {
+							shouldSpoof = true
+							break
+						}
+					}
 				}
-				if strings.HasPrefix(d, "*.") {
-
-					if strings.HasSuffix(q.Name, d[2:]) {
-						shouldSpoof = true
-						break
-					}
-				} else {
-					if strings.HasSuffix(q.Name, d) {
-						shouldSpoof = true
-						break
-					}
+				if shouldSpoof {
+					break
 				}
 			}
-
 			if shouldSpoof {
 				// spoof to local ip
 				rr, err := dns.NewRR(fmt.Sprintf("%s A %s", q.Name, config.LocalIP))
@@ -46,7 +57,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 					m.Answer = append(m.Answer, rr)
 				}
 			} else {
-				// forward to external dns
+				// forward to upstream DNS
 				c := new(dns.Client)
 				upstream := "8.8.8.8:53"
 				if appState.DNSIP != "" {
@@ -61,6 +72,7 @@ func handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 			}
 		}
 	}
+
 	w.WriteMsg(m)
 }
 
