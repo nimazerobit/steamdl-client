@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -12,6 +13,23 @@ import (
 	"steam-lancache/internal/config"
 	"steam-lancache/internal/stats"
 )
+
+type byteReader struct {
+	r        io.ReadCloser
+	category string
+}
+
+func (cr *byteReader) Read(p []byte) (int, error) {
+	n, err := cr.r.Read(p)
+	if n > 0 {
+		stats.Add(cr.category, int64(n)) // count bytes
+	}
+	return n, err
+}
+
+func (cr *byteReader) Close() error {
+	return cr.r.Close()
+}
 
 func Start(state *config.AppState) {
 	targetURL, _ := url.Parse("http://" + config.CacheDomain)
@@ -47,8 +65,10 @@ func Start(state *config.AppState) {
 			if resp.Request.Header.Get("User-Agent") != "GamingServices" {
 				host := resp.Request.Header.Get("Real-Host")
 				category := stats.DetectCategory(host)
-				if resp.ContentLength > 0 {
-					stats.Add(category, resp.ContentLength)
+				// wrap body to count every byte passed to client
+				resp.Body = &byteReader{
+					r:        resp.Body,
+					category: category,
 				}
 			}
 		}
