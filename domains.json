@@ -3,7 +3,8 @@
     "dl.steamdl.ir."
   ],
   "steam": [
-    "lancache.steamcontent.com."
+    "lancache.steamcontent.com.",
+	"*.steamcontent.com"
   ],
   "playstation": [
     "*.gs2-ww-prod.psn.akadns.net",
