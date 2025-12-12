@@ -16,45 +16,45 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tickTraffic:
-		if m.activeTab == tabTrafficStats {
+		snap := stats.Snapshot()
 
-			// take snapshot from stats package
-			snap := stats.Snapshot()
-
-			if m.lastTraffic == nil {
-				m.lastTraffic = snap
-			}
-
-			newRows := make([]table.Row, 0, len(snap))
-
-			for _, service := range config.Domains.Order {
-				bytes := snap[service]
-				last := m.lastTraffic[service]
-
-				delta := bytes - last
-				totalGB := float64(bytes) / 1_000_000_000
-
-				var speed string
-
-				if delta < 0 {
-					speed = "RESET"
-				} else {
-					speedMB := float64(delta) / 1_000_000
-					speed = fmt.Sprintf("%.2f MB/s", speedMB)
-				}
-				newRows = append(newRows, table.Row{
-					strings.Title(service),
-					fmt.Sprintf("%.2f GB", totalGB),
-					speed,
-				})
-			}
-
+		if m.lastTraffic == nil {
 			m.lastTraffic = snap
+		}
 
-			m.trafficTable.SetRows(newRows)
+		newRows := make([]table.Row, 0, len(snap))
+
+		for _, service := range config.Domains.Order {
+			bytes := snap[service]
+			last := m.lastTraffic[service]
+
+			delta := bytes - last
+			totalGB := float64(bytes) / 1_000_000_000
+
+			var speed string
+			if delta < 0 {
+				speed = "RESET"
+			} else {
+				speedMB := float64(delta) / 1_000_000
+				speed = fmt.Sprintf("%.2f MB/s", speedMB)
+			}
+
+			newRows = append(newRows, table.Row{
+				strings.Title(service),
+				fmt.Sprintf("%.2f GB", totalGB),
+				speed,
+			})
+		}
+
+		m.lastTraffic = snap
+
+		m.trafficTable.SetRows(newRows)
+
+		if m.activeTab == tabTrafficStats {
 			m.trafficTable.SetHeight(len(newRows)*2 + 1)
 		}
-		cmds = append(cmds, trafficUpdateTick(1000)) // 1 second refresh
+
+		cmds = append(cmds, trafficUpdateTick(1000))
 
 	case tea.KeyMsg:
 		switch msg.String() {
