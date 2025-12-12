@@ -32,13 +32,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				last := m.lastTraffic[service]
 
 				delta := bytes - last
-				speedMB := float64(delta) / 1_000_000
 				totalGB := float64(bytes) / 1_000_000_000
 
+				var speed string
+
+				if delta < 0 {
+					speed = "RESET"
+				} else {
+					speedMB := float64(delta) / 1_000_000
+					speed = fmt.Sprintf("%.2f MB/s", speedMB)
+				}
 				newRows = append(newRows, table.Row{
 					strings.Title(service),
 					fmt.Sprintf("%.2f GB", totalGB),
-					fmt.Sprintf("%.2f MB/s", speedMB),
+					speed,
 				})
 			}
 
@@ -57,6 +64,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.activeTab = (m.activeTab + 1) % 2
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "r":
+			if m.activeTab == tabTrafficStats {
+				stats.Reset()
+			}
 		}
 	}
 

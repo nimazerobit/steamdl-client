@@ -45,6 +45,15 @@ func Add(category string, n int64) {
 	traffic[category].Bytes += n
 }
 
+func Reset() {
+	mutex.Lock()
+	defer mutex.Unlock()
+	for _, v := range traffic {
+		v.Bytes = 0
+	}
+	log.Printf("[Stats] Traffic Stats Reset!")
+}
+
 func Snapshot() map[string]int64 {
 	mutex.Lock()
 	defer mutex.Unlock()
